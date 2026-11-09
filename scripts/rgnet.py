@@ -35,6 +35,7 @@ def _build_backbone(input_shape: tuple[int, int, int], weights: str | None = "im
             include_top=False,
             weights=None,
             input_shape=input_shape,
+            include_preprocessing=False,
         )
 
     try:
@@ -42,6 +43,7 @@ def _build_backbone(input_shape: tuple[int, int, int], weights: str | None = "im
             include_top=False,
             weights=weights,
             input_shape=input_shape,
+            include_preprocessing=False,
         )
     except Exception as exc:
         print(f"EfficientNetV2B0 {weights} weights unavailable, falling back to random init: {exc}", file=sys.stderr)
@@ -49,6 +51,7 @@ def _build_backbone(input_shape: tuple[int, int, int], weights: str | None = "im
             include_top=False,
             weights=None,
             input_shape=input_shape,
+            include_preprocessing=False,
         )
 
 
@@ -126,11 +129,17 @@ class RegionWeightedPooling(tf.keras.layers.Layer):
 def build_rgnet_model(
     input_shape: tuple[int, int, int] = (256, 256, 3),
     backbone_weights: str | None = "imagenet",
+    rescale_unit_to_signed: bool = True,
 ) -> tf.keras.Model:
     base = _build_backbone(input_shape=input_shape, weights=backbone_weights)
 
     inputs = tf.keras.Input(shape=input_shape)
-    feature_map = base(inputs, training=False)
+    x_in = (
+        tf.keras.layers.Rescaling(2.0, offset=-1.0, name="unit_to_signed")(inputs)
+        if rescale_unit_to_signed
+        else inputs
+    )
+    feature_map = base(x_in, training=False)
     feature_map = tf.keras.layers.Conv2D(256, 1, padding="same", activation="relu", name="region_proj")(feature_map)
     node_features = tf.keras.layers.Reshape((-1, 256), name="region_nodes")(feature_map)
 

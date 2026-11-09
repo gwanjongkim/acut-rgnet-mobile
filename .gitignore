@@ -2,6 +2,10 @@
 __pycache__/
 .venv/
 venv/
-models/model_files/*
+*.h5
+*.keras
+*.pth
+*.safetensors
+!models/model_files/*.tflite
 !models/model_files/.gitkeep
 *.log
